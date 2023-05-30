@@ -78,17 +78,6 @@ class JsonlDataset(Dataset):
 
         return sentence, segment
 
-    def get_mmbt_label(self, label):
-        if self.args.task_type == "multilabel":
-            label = torch.zeros(self.n_classes)
-            label[
-                [self.args.labels.index(tgt) for tgt in label]
-            ] = 1
-        else:
-            label_idx = self.args.labels.index(label) if label != 'unknown' else -1
-            label = torch.LongTensor([label_idx])
-        return label
-
     def _get_text(self, index, aug):
         if aug == 'none':
             text = self.data[index]["text"]
@@ -99,7 +88,7 @@ class JsonlDataset(Dataset):
         return sentence, segment
 
 
-    def get_multimodal_item(self, index):
+    def get_item(self, index):
         sentence, segment = self._get_text(index, self.text_aug0)
 
         label = int(self.data[index]["label"])
@@ -112,9 +101,4 @@ class JsonlDataset(Dataset):
         
     
     def __getitem__(self, index):
-        if self.args.my_format == 'classic':
-            return self.get_classic_item(index)
-        elif self.args.my_format =='multimodal':
-            return self.get_multimodal_item(index)
-        else:
-            raise ValueError(f'Unrecognized args.my_format {self.args.my_format}')
+        return self.get_item(index)

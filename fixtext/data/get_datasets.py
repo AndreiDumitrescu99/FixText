@@ -40,8 +40,6 @@ def get_vocab(args):
 
 def get_datasets(args, num_expand_x, num_expand_u):
     
-    train_sampler = RandomSampler if args.local_rank == -1 else DistributedSampler
-    
     tokenizer = (
         BertTokenizer.from_pretrained(args.bert_model, do_lower_case=True).tokenize
     )
@@ -49,6 +47,7 @@ def get_datasets(args, num_expand_x, num_expand_u):
     args.labels, args.label_freqs = get_labels_and_frequencies(
         os.path.join(args.data_path, args.task, f"{args.train_file}.jsonl")
     )
+
     vocab = get_vocab(args)
     args.vocab = vocab
     args.vocab_sz = vocab.vocab_sz
@@ -57,7 +56,8 @@ def get_datasets(args, num_expand_x, num_expand_u):
     print('args.label_freqs', args.label_freqs)
     print('n_classes:', args.n_classes)
 
-    labeled_examples_per_class = 0 if args.unbalanced else num_expand_x//args.n_classes
+    labeled_examples_per_class = 0 if args.unbalanced else num_expand_x // args.n_classes
+
     labeled_set = JsonlDataset(
         os.path.join(args.data_path, args.task, f"{args.train_file}.jsonl"),
         tokenizer,
@@ -95,3 +95,39 @@ def get_datasets(args, num_expand_x, num_expand_u):
     )
     
     return labeled_set, unlabeled_set, dev_set, test_set
+
+def get_data_loaders(args):
+
+    labeled_set, unlabeled_set, dev_set, test_set = get_datasets(args, args.k_img, args.k_img*args.mu)
+        
+    labeled_loader = DataLoader(
+        labeled_set,
+        sampler = RandomSampler(labeled_set),
+        batch_size = args.batch_size,
+        num_workers = args.num_workers,
+        drop_last = True
+    )
+
+    unlabeled_loader = DataLoader(
+        unlabeled_set,
+        sampler = RandomSampler(unlabeled_set),
+        batch_size = args.batch_size * args.mu,
+        num_workers = args.num_workers,
+        drop_last = True
+    )
+    
+    dev_loader = DataLoader(
+        dev_set,
+        sampler = SequentialSampler(dev_set),
+        batch_size = args.batch_size,
+        num_workers = args.num_workers
+    ) 
+
+    test_loader = DataLoader(
+        test_set,
+        sampler = SequentialSampler(test_set),
+        batch_size = args.batch_size,
+        num_workers = args.num_workers
+    )
+
+    return labeled_loader, unlabeled_loader, dev_loader, test_loader
