@@ -1,21 +1,12 @@
 import jsonlines
-import json
-import numpy as np
-import os
-from PIL import Image
 import random
 from collections import Counter
 import torch
 from torch.utils.data import Dataset
-from vocab import Vocab
-
-from utils.utils import truncate_seq_pair, numpy_seed
+from .vocab import Vocab
 
 class JsonlDataset(Dataset):
-    '''
-    args.labels
-    args.max_seq_len
-    '''
+
     def __init__(
         self,
         data_path: str,
@@ -23,11 +14,15 @@ class JsonlDataset(Dataset):
         vocab: Vocab,
         args,
         labeled_examples_per_class: int = 0,
-        text_aug0='none',
+        text_aug0: str ='none',
         text_aug=None
     ):
     
         self.data = [obj for obj in jsonlines.open(data_path)]
+
+        for i in range(len(self.data)):
+            self.data[i]['textDE'] = [self.data[i]['textDE']]
+            self.data[i]['textRU'] = [self.data[i]['textRU']]
         
         labels = { int(x['label']) for x in self.data }
         
@@ -49,6 +44,7 @@ class JsonlDataset(Dataset):
         self.vocab = vocab
         self.n_classes = len(args.labels)
         self.text_start_token = ["[CLS]"]
+        self.pad_token = ["[PAD]"]
 
         self.max_seq_len = args.max_seq_len
 
@@ -61,13 +57,15 @@ class JsonlDataset(Dataset):
         return len(self.data)
 
     def get_sentence_and_segment(self, text: str):
+
+        tokenized_text = self.tokenizer(text)[: (self.args.max_seq_len - 1)]
         sentence = (
             self.text_start_token
-            + self.tokenizer(text)[
-                : (self.args.max_seq_len - 1)
-            ]
+            + tokenized_text
+            + self.pad_token * (self.max_seq_len - len(tokenized_text) - 1)
         )
-        segment = torch.zeros(len(sentence))
+
+        # segment = torch.zeros(len(sentence))
 
         sentence = torch.LongTensor(
             [
@@ -76,7 +74,7 @@ class JsonlDataset(Dataset):
             ]
         )
 
-        return sentence, segment
+        return sentence
 
     def _get_text(self, index, aug):
         if aug == 'none':
@@ -84,20 +82,20 @@ class JsonlDataset(Dataset):
         else:
             text = random.choice(self.data[index][aug])
 
-        sentence, segment = self.get_sentence_and_segment(text)
-        return sentence, segment
+        sentence = self.get_sentence_and_segment(text)
+        return sentence
 
 
     def get_item(self, index):
-        sentence, segment = self._get_text(index, self.text_aug0)
+        sentence = self._get_text(index, self.text_aug0)
 
         label = int(self.data[index]["label"])
         
         if self.text_aug is None:
-            return sentence, segment, label
+            return sentence, label
         else:
-            sentence_aug, segment_aug = self._get_text(index, self.text_aug)
-            return sentence, segment, label, sentence_aug, segment_aug
+            sentence_aug = self._get_text(index, self.text_aug)
+            return sentence, label, sentence_aug
         
     
     def __getitem__(self, index):

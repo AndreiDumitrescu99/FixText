@@ -1,21 +1,22 @@
-import functools
 import jsonlines
 import os
-from collections import Counter
+from collections import Counter, namedtuple
 
 import torch
 import torchvision.transforms as transforms
 from pytorch_transformers import *
 
-from textDataset import JsonlDataset
+from .text_dataset import JsonlDataset
 from data.vocab import Vocab
 
 from torch.utils.data import DataLoader, RandomSampler, SequentialSampler
-from torch.utils.data.distributed import DistributedSampler
+
+class Object(object):
+    pass
 
 def get_labels_and_frequencies(path):
     label_freqs = Counter()
-    data_labels = [int(obj["label"]) for obj in jsonlines.open(path)]
+    data_labels = [int(obj['label']) for obj in jsonlines.open(path)]
 
     if type(data_labels[0]) == list:
         for label_row in data_labels:
@@ -38,15 +39,13 @@ def get_vocab(args):
 
     return vocab
 
-def get_datasets(args, num_expand_x, num_expand_u):
+def get_datasets(args):
     
     tokenizer = (
         BertTokenizer.from_pretrained(args.bert_model, do_lower_case=True).tokenize
     )
     
-    args.labels, args.label_freqs = get_labels_and_frequencies(
-        os.path.join(args.data_path, args.task, f"{args.train_file}.jsonl")
-    )
+    args.labels, args.label_freqs = get_labels_and_frequencies(os.path.join(args.data_path, 'train', args.task))
 
     vocab = get_vocab(args)
     args.vocab = vocab
@@ -56,10 +55,10 @@ def get_datasets(args, num_expand_x, num_expand_u):
     print('args.label_freqs', args.label_freqs)
     print('n_classes:', args.n_classes)
 
-    labeled_examples_per_class = 0 if args.unbalanced else num_expand_x // args.n_classes
+    labeled_examples_per_class = 0 #if args.unbalanced else num_expand_x // args.n_classes
 
     labeled_set = JsonlDataset(
-        os.path.join(args.data_path, args.task, f"{args.train_file}.jsonl"),
+        os.path.join(args.data_path, 'train', args.task),
         tokenizer,
         vocab,
         args,
@@ -70,7 +69,7 @@ def get_datasets(args, num_expand_x, num_expand_u):
     args.train_data_len = len(labeled_set)
 
     unlabeled_set = JsonlDataset(
-        os.path.join(args.data_path, 'unlabeled', f"{args.unlabeled_dataset}.jsonl"),
+        os.path.join(args.data_path, 'unlabeled', args.unlabeled_dataset),
         tokenizer,
         vocab,
         args,
@@ -79,7 +78,7 @@ def get_datasets(args, num_expand_x, num_expand_u):
     )
     
     dev_set = JsonlDataset(
-        os.path.join(args.data_path, args.task, "dev.jsonl"),
+        os.path.join(args.data_path, 'dev', args.task),
         tokenizer,
         vocab,
         args,
@@ -87,7 +86,7 @@ def get_datasets(args, num_expand_x, num_expand_u):
     )
     
     test_set = JsonlDataset(
-        os.path.join(args.data_path, args.task, "test.jsonl"),
+        os.path.join(args.data_path, 'test', args.task),
         tokenizer,
         vocab,
         args,
@@ -98,7 +97,7 @@ def get_datasets(args, num_expand_x, num_expand_u):
 
 def get_data_loaders(args):
 
-    labeled_set, unlabeled_set, dev_set, test_set = get_datasets(args, args.k_img, args.k_img*args.mu)
+    labeled_set, unlabeled_set, dev_set, test_set = get_datasets(args)
         
     labeled_loader = DataLoader(
         labeled_set,
@@ -131,3 +130,33 @@ def get_data_loaders(args):
     )
 
     return labeled_loader, unlabeled_loader, dev_loader, test_loader
+
+if __name__ == '__main__':
+
+    args = Object()
+
+    args.data_path = 'C:\\Users\\andre\\Desktop\\Master - 2\\Research\\final_datasets\\fixtext\\'
+    args.task = 'final_simplified_language_youtube_parsed_dataset.jsonl'
+    args.unlabeled_dataset = 'unlabled_language_youtube_dataset.jsonl'
+    args.batch_size = 1
+    args.num_workers = 1
+    args.mu = 1
+    args.bert_model = 'bert-base-uncased'
+    args.text_soft_aug = 'eda_01'
+    args.text_hard_aug = 'textRU'
+    args.max_seq_len = 60
+
+    labeled_loader, unlabeled_loader, dev_loader, test_loader = get_data_loaders(args)
+
+    train_loader = zip(labeled_loader, unlabeled_loader)
+
+    print("Loaded!")
+
+    for batch_idx, (data_x, data_u) in enumerate(train_loader):
+
+        print("Labeled: ", data_x)
+        print()
+        print("Unlabeled:", data_u)
+
+        break
+

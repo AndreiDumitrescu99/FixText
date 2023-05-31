@@ -13,14 +13,15 @@ def test(args, test_loader, model, tst_name='Test'):
     bin_metrics = {m : AverageMeter() for m in [
         'micro/precision', 'micro/recall', 'micro/f1',
         'macro/precision', 'macro/recall', 'macro/f1',
+        'accuracy'
     ]}
     
     if isinstance(test_loader, dict):
         test_loader = test_loader['test']
         
-    if not args.no_progress:
-        test_loader = tqdm(test_loader)
-        
+    # if not args.no_progress:
+    #     test_loader = tqdm(test_loader)
+    end = time.time()
     with torch.no_grad():
         for batch_idx, (inputs, targets) in enumerate(test_loader):
 
@@ -41,16 +42,14 @@ def test(args, test_loader, model, tst_name='Test'):
                 
             batch_time.update(time.time() - end)
             end = time.time()
-            if not args.no_progress:
-                test_loader.set_description(tst_name+" Iter: {batch:4}/{iter:4}. Data: {data:.3f}s. Batch: {bt:.3f}s. Loss: {loss:.4f}. ".format(
-                    batch=batch_idx + 1,
-                    iter=len(test_loader),
-                    data=data_time.avg,
-                    bt=batch_time.avg,
-                    loss=losses.avg,
-                ))
-        if not args.no_progress:
-            test_loader.close()
+            # if not args.no_progress:
+            #     print(tst_name+" Iter: {batch:4}/{iter:4}. Data: {data:.3f}s. Batch: {bt:.3f}s. Loss: {loss:.4f}. ".format(
+            #         batch=batch_idx + 1,
+            #         iter=len(test_loader),
+            #         data=data_time.avg,
+            #         bt=batch_time.avg,
+            #         loss=losses.avg,
+            #     ))
 
 
     for k in bin_metrics:

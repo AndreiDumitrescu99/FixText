@@ -10,5 +10,6 @@ def binary_metrics(output, target):
         'macro/precision': precision_score(target, output, average='macro', zero_division=0),
         'macro/recall': recall_score(target, output, average='macro', zero_division=0),
         'macro/f1': f1_score(target, output, average='macro', zero_division=0),
+        'accuracy': accuracy_score(target, output)
     }
     return binary_metrics

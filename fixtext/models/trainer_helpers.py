@@ -12,6 +12,7 @@ def save_checkpoint(state, is_best, checkpoint, filename='checkpoint.pth.tar'):
                                                'model_best.pth.tar'))
 
 def get_scheduler(optimizer, args):
+
     return optim.lr_scheduler.ReduceLROnPlateau(
         optimizer, "min", patience=args.lr_patience, verbose=True, factor=args.lr_factor, min_lr=0.000001
     )
@@ -19,5 +20,9 @@ def get_scheduler(optimizer, args):
 
 def get_optimizer(model, args):
 
-    optimizer = optim.Adam(model.parameters(), lr=args.lr)
+    optimizer = torch.optim.AdamW(
+    [
+        {"params": model.bert.parameters(), "lr": args.lrmain},
+        {"params": model.linear.parameters(), "lr": args.lrlast},
+    ])
     return optimizer

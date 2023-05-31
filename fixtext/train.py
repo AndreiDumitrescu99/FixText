@@ -13,11 +13,15 @@ from torch.utils.tensorboard import SummaryWriter
 from models.bert import ClassificationBert
 from models.trainer_helpers import get_optimizer, save_checkpoint, get_scheduler
 from utils.utils import set_seed
+from utils.argument_parser import get_my_args
 from data.get_datasets import get_data_loaders
-from .test import test
+from test import test
 
 import logging
 logger = logging.getLogger(__name__)
+
+global_step = 0
+best_loss = np.inf
 
 def main():
     parser = argparse.ArgumentParser(description='PyTorch FixText Training')
@@ -26,9 +30,8 @@ def main():
     args = parser.parse_args()
 
     global best_loss
-    best_loss = np.inf
 
-    def create_model(args):
+    def create_model():
         model = ClassificationBert()
 
         logger.info("Total params: {:.2f}M".format(
@@ -36,7 +39,8 @@ def main():
 
         return model
 
-    device = torch.device('cuda', args.gpu_id)
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
     args.world_size = 1
     args.n_gpu = torch.cuda.device_count()
 
@@ -44,11 +48,11 @@ def main():
     print("Num GPUs", args.n_gpu)
     print("Device", args.device)
     
-
     logging.basicConfig(
         format="%(asctime)s - %(levelname)s - %(name)s -   %(message)s",
         datefmt="%m/%d/%Y %H:%M:%S",
-        level=logging.INFO)
+        level=logging.INFO
+    )
 
     logger.warning(
         f"device: {args.device}, "
@@ -58,17 +62,17 @@ def main():
     logger.info(dict(args._get_kwargs()))
 
     if args.seed != -1:
-        set_seed(args)
+        set_seed(args.seed)
 
     writer = SummaryWriter(args.out)
 
     labeled_trainloader, unlabeled_trainloader, valid_loader, test_loader = get_data_loaders(args)
 
-    model = create_model(args)
+    model = create_model()
     model.to(args.device)
     
     optimizer = get_optimizer(model, args)
-    scaler = torch.cuda.amp.GradScaler()
+    # scaler = torch.cuda.amp.GradScaler()
 
     args.iteration = args.batch_size
     args.total_steps = args.epochs * args.iteration // args.gradient_accumulation_steps
@@ -77,30 +81,8 @@ def main():
 
     start_epoch = 0
 
-    if args.resume:
-        logger.info("==> Resuming from checkpoint..")
-        print('GPU: ', args.gpu_id)
-
-        if os.path.isfile(args.resume):
-            args.out = os.path.dirname(args.resume)
-            checkpoint = torch.load(args.resume)
-
-            best_loss = checkpoint['best_loss']
-            start_epoch = checkpoint['epoch']
-
-            model.load_state_dict(checkpoint['state_dict'])
-            print(f'Model loaded from epoch {start_epoch}')
-
-            model.to(args.device)
-            print('Model sent to device')
-
-            optimizer.load_state_dict(checkpoint['optimizer'])
-            scheduler.load_state_dict(checkpoint['scheduler'])
-        else:
-            print('Attention! No checkpoint directory found. Training from epoch 0.')
-
     logger.info("***** Running training *****")
-    logger.info(f"  Task = {args.dataset}@{args.num_labeled}")
+    logger.info(f"  Task = {args.task}")
     logger.info(f"  Num Epochs = {args.epochs}")
     logger.info(f"  Batch size per GPU = {args.batch_size}")
     logger.info(
@@ -129,7 +111,7 @@ def main():
 
         # Train step
         train_loss, train_loss_x, train_loss_u, mask_prob = generic_train(
-                args, labeled_trainloader, unlabeled_trainloader, model, optimizer, scheduler, epoch, scaler)
+                args, labeled_trainloader, unlabeled_trainloader, model, optimizer, scheduler, epoch)
 
         if args.no_progress:
             logger.info("Epoch {}. train_loss: {:.4f}. train_loss_x: {:.4f}. train_loss_u: {:.4f}."
@@ -140,7 +122,20 @@ def main():
 
         # Test step
         etrain_loss, bin_etrain = test(args, labeled_trainloader, test_model, 'EvalTrain')
+        print('Train metrics: ', etrain_loss)
+        for k, v in bin_etrain.items():
+            print('', k, v, sep='\t')
+        print()
         test_loss, bin_test = test(args, valid_loader, test_model, 'Valid')
+        print('Valid metrics: ', test_loss)
+        for k, v in bin_test.items():
+            print('', k, v, sep='\t')
+        print()
+        real_test_loss, real_bin_test = test(args, test_loader, test_model, 'Test')
+        print('Test metrics: ', real_test_loss)
+        for k, v in real_bin_test.items():
+            print('', k, v, sep='\t')
+        print()
 
         tuning_metric = etrain_loss
         scheduler.step(tuning_metric)
@@ -174,21 +169,12 @@ def main():
     writer.close()
 
         
-def generic_train(args, labeled_loader, unlabeled_loader, model, optimizer, scheduler, epoch, scaler):
+def generic_train(args, labeled_loader, unlabeled_loader, model, optimizer, scheduler, epoch):
     train_loss, train_loss_x, train_loss_u, mask_prob = train(
-        args, labeled_loader, unlabeled_loader, model, optimizer, scheduler, epoch, scaler)
+        args, labeled_loader, unlabeled_loader, model, optimizer, scheduler, epoch)
 
     return train_loss, train_loss_x, train_loss_u, mask_prob
         
-
-def softXEnt (input, target):
-    logprobs = torch.nn.functional.log_softmax (input, dim = 1)
-    return  -(target * logprobs).sum() / input.shape[0]
-
-"""
-args.no_progress
-args.distil
-"""
 def train(args, labeled_loader, unlabeled_loader, model, optimizer, scheduler, epoch):
 
     batch_time = AverageMeter()
@@ -201,85 +187,52 @@ def train(args, labeled_loader, unlabeled_loader, model, optimizer, scheduler, e
     global global_step
     
     if not args.no_progress:
-        p_bar = tqdm(range(args.iteration),
-                     disable=args.local_rank not in [-1, 0])
+        p_bar = tqdm(range(args.iteration))
         
     train_loader = zip(labeled_loader, unlabeled_loader)
     model.train()
-    if args.linear_lu or args.distil =='linear':
+    if args.linear_lu:
         print('Lu weight: ', (epoch / args.epochs) * args.lambda_u)
 
-    print('args.distil', args.distil)
-
     for batch_idx, (data_x, data_u) in enumerate(train_loader):
-        text_x, segment_x, tgt_x, text_aug_data_x = data_x
-        text_u, segment_u, _, text_aug_data_u = data_u
-
-        if text_aug_data_x is not None:
-            raise NotImplementedError('treat this case')
+        text_x, tgt_x = data_x
+        text_u, _, text_aug_data_u = data_u
 
         if (text_aug_data_u is not None) and (random.random() < args.text_prob_aug):
-            text_aug_u, segment_aug_u = text_aug_data_u
-            if batch_idx < 4:
-                print('use aug text')
+            text_aug_u = text_aug_data_u
         else:
-            text_aug_u, segment_aug_u = text_u, segment_u
+            text_aug_u = text_u
 
         data_time.update(time.time() - end)
         batch_size = text_x.shape[0]
         
         texts = torch.cat((text_x, text_u, text_aug_u)).to(args.device)
-        segments = torch.cat((segment_x, segment_u, segment_aug_u)).to(args.device)
 
         targets_x = tgt_x.to(args.device)
 
-        logits = model(texts, segments)
+        logits = model(texts)
         logits_x = logits[:batch_size]
         logits_u_w, logits_u_s = logits[batch_size:].chunk(2)
         del logits
 
-        ### STILL TO DO ###
-        if args.distil == 'unlabeled':
-            Lx = F.cross_entropy(logits_x, targets_x, reduction='mean')
-            pseudo_label = torch.softmax(logits_u_w.detach(), dim=-1)
-            max_probs, targets_u = torch.max(pseudo_label, dim=-1)
-            mask = max_probs.ge(args.threshold).float()
-            Lu = softXEnt(logits_u_s, pseudo_label)
-        
-        elif args.distil == 'linear':
-#             raise ValueError('unimplemented')
-            Lx = F.cross_entropy(logits_x, targets_x, reduction='mean')
-            pseudo_label = torch.softmax(logits_u_w.detach(), dim=-1)
-            max_probs, targets_u = torch.max(pseudo_label, dim=-1)
-            mask = max_probs.ge(args.threshold).float()
-            Lu_soft = softXEnt(logits_u_s, pseudo_label)
-            Lu_hard = (F.cross_entropy(logits_u_s, targets_u, reduction='none') * mask).mean()
-            alpha = 1 - epoch / args.epochs
-            Lu = alpha * Lu_soft + (1-alpha) * Lu_hard
-        
-        else:
-            Lx = F.cross_entropy(logits_x, targets_x, reduction='mean')
-            pseudo_label = torch.softmax(logits_u_w.detach(), dim=-1)
-            max_probs, targets_u = torch.max(pseudo_label, dim=-1)
-            mask = max_probs.ge(args.threshold).float()
-            Lu = (F.cross_entropy(logits_u_s, targets_u, reduction='none') * mask).mean()
+        # Compute Loss
+        Lx = F.cross_entropy(logits_x, targets_x, reduction='mean')
+        pseudo_label = torch.softmax(logits_u_w.detach(), dim=-1)
+        max_probs, targets_u = torch.max(pseudo_label, dim=-1)
+        mask = max_probs.ge(args.threshold).float()
+        Lu = (F.cross_entropy(logits_u_s, targets_u, reduction='none') * mask).mean()
         
         if args.random_lu:
             args.lambda_u = random.randint(args.lambda_u_min, args.lambda_u_max)
             
         if args.linear_lu:
-#             Lu = (epoch / args.epochs) * Lu
             Lu = (args.lambda_u_min + epoch * args.lambda_u / args.epochs) * Lu
         else:
             Lu = args.lambda_u * Lu
         
         loss = (Lx + Lu) / args.gradient_accumulation_steps
-    #         loss = Lx + Lu
 
         loss.backward()
-        # scaler.scale(loss).backward()
-        # scaler.step(optimizer)
-        # scaler.update()
         
         losses.update(loss.item())
         losses_x.update(Lx.item())
@@ -289,8 +242,6 @@ def train(args, labeled_loader, unlabeled_loader, model, optimizer, scheduler, e
         if global_step % args.gradient_accumulation_steps == 0:
             optimizer.step()
             model.zero_grad()            
-            if args.scheduler == 'cosine':
-                scheduler.step()
         
         batch_time.update(time.time() - end)
         end = time.time()
@@ -314,3 +265,6 @@ def train(args, labeled_loader, unlabeled_loader, model, optimizer, scheduler, e
         p_bar.close()
 
     return losses.avg, losses_x.avg, losses_u.avg, mask_prob
+
+if __name__ == "__main__":
+    main()
