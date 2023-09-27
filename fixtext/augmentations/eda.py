@@ -7,48 +7,157 @@ from typing import List
 
 import re
 import nltk
-nltk.download('wordnet')
-nltk.download('omw-1.4')
+
+nltk.download("wordnet")
+nltk.download("omw-1.4")
 random.seed(1)
 from nltk.corpus import wordnet
 
 stop_words = [
-    'i', 'me', 'my', 'myself', 'we', 'our', 
-    'ours', 'ourselves', 'you', 'your', 'yours', 
-    'yourself', 'yourselves', 'he', 'him', 'his', 
-    'himself', 'she', 'her', 'hers', 'herself', 
-    'it', 'its', 'itself', 'they', 'them', 'their', 
-    'theirs', 'themselves', 'what', 'which', 'who', 
-    'whom', 'this', 'that', 'these', 'those', 'am', 
-    'is', 'are', 'was', 'were', 'be', 'been', 'being', 
-    'have', 'has', 'had', 'having', 'do', 'does', 'did',
-    'doing', 'a', 'an', 'the', 'and', 'but', 'if', 'or',
-    'because', 'as', 'until', 'while', 'of', 'at', 
-    'by', 'for', 'with', 'about', 'against', 'between',
-    'into', 'through', 'during', 'before', 'after', 
-    'above', 'below', 'to', 'from', 'up', 'down', 'in',
-    'out', 'on', 'off', 'over', 'under', 'again', 
-    'further', 'then', 'once', 'here', 'there', 'when', 
-    'where', 'why', 'how', 'all', 'any', 'both', 'each', 
-    'few', 'more', 'most', 'other', 'some', 'such', 'no', 
-    'nor', 'not', 'only', 'own', 'same', 'so', 'than', 'too', 
-    'very', 's', 't', 'can', 'will', 'just', 'don', 
-    'should', 'now', ''
+    "i",
+    "me",
+    "my",
+    "myself",
+    "we",
+    "our",
+    "ours",
+    "ourselves",
+    "you",
+    "your",
+    "yours",
+    "yourself",
+    "yourselves",
+    "he",
+    "him",
+    "his",
+    "himself",
+    "she",
+    "her",
+    "hers",
+    "herself",
+    "it",
+    "its",
+    "itself",
+    "they",
+    "them",
+    "their",
+    "theirs",
+    "themselves",
+    "what",
+    "which",
+    "who",
+    "whom",
+    "this",
+    "that",
+    "these",
+    "those",
+    "am",
+    "is",
+    "are",
+    "was",
+    "were",
+    "be",
+    "been",
+    "being",
+    "have",
+    "has",
+    "had",
+    "having",
+    "do",
+    "does",
+    "did",
+    "doing",
+    "a",
+    "an",
+    "the",
+    "and",
+    "but",
+    "if",
+    "or",
+    "because",
+    "as",
+    "until",
+    "while",
+    "of",
+    "at",
+    "by",
+    "for",
+    "with",
+    "about",
+    "against",
+    "between",
+    "into",
+    "through",
+    "during",
+    "before",
+    "after",
+    "above",
+    "below",
+    "to",
+    "from",
+    "up",
+    "down",
+    "in",
+    "out",
+    "on",
+    "off",
+    "over",
+    "under",
+    "again",
+    "further",
+    "then",
+    "once",
+    "here",
+    "there",
+    "when",
+    "where",
+    "why",
+    "how",
+    "all",
+    "any",
+    "both",
+    "each",
+    "few",
+    "more",
+    "most",
+    "other",
+    "some",
+    "such",
+    "no",
+    "nor",
+    "not",
+    "only",
+    "own",
+    "same",
+    "so",
+    "than",
+    "too",
+    "very",
+    "s",
+    "t",
+    "can",
+    "will",
+    "just",
+    "don",
+    "should",
+    "now",
+    "",
 ]
 
 
 def reduce_repeating(s: str) -> str:
-    repeat_pattern = re.compile(r'(.)\1\1+')
-    match_substitution = r'\1\1'
+    repeat_pattern = re.compile(r"(.)\1\1+")
+    match_substitution = r"\1\1"
     return repeat_pattern.sub(match_substitution, s)
+
 
 def get_only_chars(line: str) -> str:
     """
-    Receives a string line and returns the cleaned version which contains only alphabet characters.
+    Receives a string line and returns the cleaned version of it which contains only alphabet characters.
 
     Args:
         line (str): String line to be cleaned.
-    
+
     Returns:
         (str): Cleaned line containing only lower cased alphabet characters.
     """
@@ -57,26 +166,27 @@ def get_only_chars(line: str) -> str:
 
     line = line.replace("’", "")
     line = line.replace("'", "")
-    line = line.replace("-", " ") # Replace hyphens with spaces
+    line = line.replace("-", " ")  # Replace hyphens with spaces
     line = line.replace("\t", " ")
     line = line.replace("\n", " ")
     line = line.lower()
 
     for char in line:
-        if char in '0123456789qwertyuiopasdfghjklzxcvbnm ':
+        if char in "0123456789qwertyuiopasdfghjklzxcvbnm ":
             clean_line += char
         else:
-            clean_line += ' '
+            clean_line += " "
 
     # Delete extra spaces.
-    clean_line = re.sub(' +', ' ', clean_line)
-    if clean_line[0] == ' ':
+    clean_line = re.sub(" +", " ", clean_line)
+    if clean_line[0] == " ":
         clean_line = clean_line[1:]
-    
+
     # Reduce repeaitng characters.
     clean_line = reduce_repeating(clean_line)
 
     return clean_line
+
 
 def get_synonyms(word: str) -> List[str]:
     """
@@ -84,23 +194,26 @@ def get_synonyms(word: str) -> List[str]:
 
     Args:
         word (str): Word for which we want to compute synonims.
-    
+
     Returns:
         (List[str]): List of synonims for the given words.
     """
 
     synonyms = set()
 
-    for syn in wordnet.synsets(word): 
-        for l in syn.lemmas(): 
+    for syn in wordnet.synsets(word):
+        for l in syn.lemmas():
             synonym = l.name().replace("_", " ").replace("-", " ").lower()
-            synonym = "".join([char for char in synonym if char in ' qwertyuiopasdfghjklzxcvbnm'])
-            synonyms.add(synonym) 
+            synonym = "".join(
+                [char for char in synonym if char in " qwertyuiopasdfghjklzxcvbnm"]
+            )
+            synonyms.add(synonym)
 
     if word in synonyms:
         synonyms.remove(word)
 
     return list(synonyms)
+
 
 def synonym_replacement(words: List[str], n: int) -> List[str]:
     """
@@ -109,7 +222,7 @@ def synonym_replacement(words: List[str], n: int) -> List[str]:
     Args:
         words (List[str]): List of words.
         n (int): How many words to replace.
-    
+
     Returns:
         (List[str]): List with the new words replaced.
     """
@@ -132,14 +245,15 @@ def synonym_replacement(words: List[str], n: int) -> List[str]:
             num_replaced += 1
 
         # Only replace up to n words.
-        if num_replaced >= n: 
+        if num_replaced >= n:
             break
 
     # This is stupid but we need it, trust me. | A.D.: Yeah, it is.
-    sentence = ' '.join(new_words)
-    new_words = sentence.split(' ')
+    sentence = " ".join(new_words)
+    new_words = sentence.split(" ")
 
     return new_words
+
 
 def random_deletion(words: List[str], p: float) -> List[str]:
     """
@@ -148,7 +262,7 @@ def random_deletion(words: List[str], p: float) -> List[str]:
     Args:
         words (List[str]): List of words to be deleted.
         p (float): Probability that defines the chance of a word to be deleted.
-    
+
     Returns:
         (List[str]): New list of words without the deleted ones.
     """
@@ -171,37 +285,42 @@ def random_deletion(words: List[str], p: float) -> List[str]:
 
     return new_words
 
+
 def swap_word(new_words: List[str]) -> List[str]:
     """
     Swap 2 words from a given list of words. It has a small chance to return the list unchanged.
 
     Args:
         new_words (List[str]): List of initial words.
-    
+
     Returns:
         (List[str]): The list with 2 words swapped, or in a very small of cases the list unchanged.
     """
 
-    random_idx_1 = random.randint(0, len(new_words)-1)
+    random_idx_1 = random.randint(0, len(new_words) - 1)
     random_idx_2 = random_idx_1
 
     # Try to get 2 different random indexes for 3 times.
     counter = 0
     while random_idx_2 == random_idx_1:
-        random_idx_2 = random.randint(0, len(new_words)-1)
+        random_idx_2 = random.randint(0, len(new_words) - 1)
         counter += 1
         if counter > 3:
             return new_words
-    
+
     # Swap the words.
-    new_words[random_idx_1], new_words[random_idx_2] = new_words[random_idx_2], new_words[random_idx_1]
+    new_words[random_idx_1], new_words[random_idx_2] = (
+        new_words[random_idx_2],
+        new_words[random_idx_1],
+    )
 
     return new_words
+
 
 def random_swap(words: List[str], n: int) -> List[str]:
     """
     Perform N word swaps.
-    
+
     Args:
         words (List[str]): List of words on which we want to perform the swaps.
         n (int): The number of swaps to be done.
@@ -215,6 +334,7 @@ def random_swap(words: List[str], n: int) -> List[str]:
         new_words = swap_word(new_words)
     return new_words
 
+
 def add_word(new_words: List[str]) -> None:
     """
     Insert a word inside of the list of words. The new word has to be a synonim of a random word from the list.
@@ -222,24 +342,25 @@ def add_word(new_words: List[str]) -> None:
 
     Args:
         new_words (List[str]): List of original words.
-    
+
     Returns:
         (None): The list of words is changed in place!
     """
-    
+
     synonyms = []
     counter = 0
 
     while len(synonyms) < 1:
-        random_word = new_words[random.randint(0, len(new_words)-1)]
+        random_word = new_words[random.randint(0, len(new_words) - 1)]
         synonyms = get_synonyms(random_word)
         counter += 1
         if counter >= 10:
             return
 
     random_synonym = synonyms[0]
-    random_idx = random.randint(0, len(new_words)-1)
+    random_idx = random.randint(0, len(new_words) - 1)
     new_words.insert(random_idx, random_synonym)
+
 
 def random_insertion(words: List[str], n: int) -> List[str]:
     """
@@ -248,7 +369,7 @@ def random_insertion(words: List[str], n: int) -> List[str]:
     Args:
         words (List[str]): Original list of words.
         n (int): Number of insertions.
-    
+
     Returns:
         (List(str)): New list of words.
     """
@@ -258,9 +379,11 @@ def random_insertion(words: List[str], n: int) -> List[str]:
         add_word(new_words)
     return new_words
 
+
 ########################################################################
 # main data augmentation function
 ########################################################################
+
 
 def eda(
     sentence: str,
@@ -269,13 +392,12 @@ def eda(
     alpha_rs: float = 0.1,
     p_rd: float = 0.1,
     num_aug: int = 10,
-    per_technique: bool = False
+    per_technique: bool = False,
 ) -> List[str]:
-
     # Preproces the sentence.
     sentence = get_only_chars(sentence)
-    words = sentence.split(' ')
-    words = [word for word in words if word != '']
+    words = sentence.split(" ")
+    words = [word for word in words if word != ""]
     num_words = len(words)
 
     augmented_sentences = []
@@ -286,31 +408,31 @@ def eda(
         num_new_per_technique = int(num_aug / 4) + 1
 
     # Synonym replacement.
-    if (alpha_sr > 0):
+    if alpha_sr > 0:
         n_sr = max(1, int(alpha_sr * num_words))
         for _ in range(num_new_per_technique):
             a_words = synonym_replacement(words, n_sr)
-            augmented_sentences.append(' '.join(a_words))
+            augmented_sentences.append(" ".join(a_words))
 
     # Random Insertion.
-    if (alpha_ri > 0):
+    if alpha_ri > 0:
         n_ri = max(1, int(alpha_ri * num_words))
         for _ in range(num_new_per_technique):
             a_words = random_insertion(words, n_ri)
-            augmented_sentences.append(' '.join(a_words))
+            augmented_sentences.append(" ".join(a_words))
 
     # Random Swap.
-    if (alpha_rs > 0):
+    if alpha_rs > 0:
         n_rs = max(1, int(alpha_rs * num_words))
         for _ in range(num_new_per_technique):
             a_words = random_swap(words, n_rs)
-            augmented_sentences.append(' '.join(a_words))
+            augmented_sentences.append(" ".join(a_words))
 
     # Random Deletion.
-    if (p_rd > 0):
+    if p_rd > 0:
         for _ in range(num_new_per_technique):
             a_words = random_deletion(words, p_rd)
-            augmented_sentences.append(' '.join(a_words))
+            augmented_sentences.append(" ".join(a_words))
 
     augmented_sentences = [get_only_chars(sentence) for sentence in augmented_sentences]
     shuffle(augmented_sentences)
@@ -320,7 +442,9 @@ def eda(
         augmented_sentences = augmented_sentences[:num_aug]
     else:
         keep_prob = num_aug / len(augmented_sentences)
-        augmented_sentences = [s for s in augmented_sentences if random.uniform(0, 1) < keep_prob]
+        augmented_sentences = [
+            s for s in augmented_sentences if random.uniform(0, 1) < keep_prob
+        ]
 
     # Append the original sentence.
     augmented_sentences.append(sentence)

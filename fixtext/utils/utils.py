@@ -2,6 +2,7 @@ import random
 import numpy as np
 import torch as th
 
+
 def set_seed(seed: int):
     """
     Set seed so that the experiments are replicable.

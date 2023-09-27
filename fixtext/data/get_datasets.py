@@ -55,7 +55,7 @@ def get_datasets(args):
     print('args.label_freqs', args.label_freqs)
     print('n_classes:', args.n_classes)
 
-    labeled_examples_per_class = 0 #if args.unbalanced else num_expand_x // args.n_classes
+    labeled_examples_per_class = args.labeled_examples_per_class #if args.unbalanced else num_expand_x // args.n_classes
 
     labeled_set = JsonlDataset(
         os.path.join(args.data_path, 'train', args.task),
@@ -110,7 +110,7 @@ def get_data_loaders(args):
     unlabeled_loader = DataLoader(
         unlabeled_set,
         sampler = RandomSampler(unlabeled_set),
-        batch_size = args.batch_size * args.mu,
+        batch_size = int(args.batch_size * args.mu),
         num_workers = args.num_workers,
         drop_last = True
     )
