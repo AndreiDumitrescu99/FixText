@@ -4,6 +4,19 @@ from typing import List
 class Vocab(object):
     """
     Vocabulary Class that holds a mapping between words and ids.
+
+    Attributes:
+        stoi (Dict[str, int]):
+            Dictionary that maps a word / token from the vocabulary to an id.
+        itos (List[str]):
+            List that acts as a reverse dictionary for the stoi attribute that maps
+            the ids to words / tokens.
+        vocab_sz (int):
+            Vocabulary size.
+
+    Methods:
+        add(self, words: List[str]) -> None:
+            Add words to the vocabulary.
     """
 
     def __init__(self, emptyInit: bool = False):

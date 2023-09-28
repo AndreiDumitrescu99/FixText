@@ -16,6 +16,16 @@ class ClassificationBert(nn.Module):
     The Classification Head is made out of a Linear Layer used to reduce the embeddings dimensionality, followed by a
     Tanh activation function and a last Linear Layer that reduced the dimensionality of the embeddings
     to the number of classes used for classification.
+
+    Attributes:
+        bert (BertModel):
+            Trainable BERT Layer that acts as a feature extractor.
+        linear (nn.Sequential):
+            Classification Head that outputs the probabilities for each label.
+
+    Methods:
+        forward(self, x: torch.Tensor, length: int = 256) -> torch.Tensor:
+            Forward pass through the model.
     """
 
     def __init__(self, num_labels: int = 2):
