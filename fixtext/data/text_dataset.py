@@ -12,6 +12,17 @@ from typing import Tuple, Union, Optional
 class JsonlDataset(Dataset):
     """
     JSONL Dataset Class.
+
+    Attributes:
+        data (List[Dict[str, str]]): List of data samples.
+        tokenizer (BertTokenizer): Tokenizer to be used on the text data.
+        vocab (Vocab): Vocabulary object that holds the tokens & ids from tokenizer.
+        n_classes (int): How many unique labels / classes are in the dataset.
+        text_start_token (str): Start token for the input of BERT.
+        pad_token (str): Pad token.
+        max_seq_len (int): Maximum sequence length for the input text.
+        text_aug_soft (str): Soft augmentation.
+        text_aug (str): Strong augmentation.
     """
 
     def __init__(
@@ -19,9 +30,10 @@ class JsonlDataset(Dataset):
         data_path: str,
         tokenizer: BertTokenizer,
         vocab: Vocab,
-        args: argparse.Namespace,
+        n_classes: int,
+        max_seq_len: int,
         labeled_examples_per_class: int = 0,
-        text_aug0: str = "none",
+        text_aug_soft: str = "none",
         text_aug: Optional[str] = None,
     ):
         """
@@ -31,11 +43,11 @@ class JsonlDataset(Dataset):
             data_path (str): Path to the JSONL file.
             tokenizer (BertTokenizer): Tokenizer used on input texts.
             vocab (Vocab): Vocabulary of the tokenizer.
-            args (argparse.Namespace): Object with multiple properties. The ones of interest are:
-                "labels" and "max_seq_len".
+            n_classes (int): How many unique labels / classes are in the dataset.
+            max_seq_len (int): Maximum sequence length for the input text.
             labeled_examples_per_class (int): Number of samples to be used per class. This dataset loader
-                tries to build a balanced dataset (as much as possible).
-            text_aug0 (str): Soft augmentation.
+                tries to build a balanced dataset (as much as possible). If 0 it uses all the samples.
+            text_aug_soft (str): Soft augmentation.
             text_aug (Optional[str]): Optional strong augmentation.
         """
 
@@ -77,14 +89,13 @@ class JsonlDataset(Dataset):
         # Save the arguments.
         self.tokenizer = tokenizer
         self.vocab = vocab
-        self.n_classes = len(args.labels)
+        self.n_classes = n_classes
         self.text_start_token = ["[CLS]"]
         self.pad_token = ["[PAD]"]
 
-        self.max_seq_len = args.max_seq_len
+        self.max_seq_len = max_seq_len
 
-        self.errors = 0
-        self.text_aug0 = text_aug0
+        self.text_aug_soft = text_aug_soft
         self.text_aug = text_aug
 
     def __len__(self) -> int:
@@ -169,7 +180,7 @@ class JsonlDataset(Dataset):
         """
 
         # Softly augment the text & extract the ids corresponding to the augmented tokenized sample.
-        sentence = self._get_text(index, self.text_aug0)
+        sentence = self._get_text(index, self.text_aug_soft)
 
         # Extract the label.
         label = int(self.data[index]["label"])

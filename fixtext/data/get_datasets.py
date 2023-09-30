@@ -1,9 +1,8 @@
+from argparse import Namespace
+from collections import Counter, namedtuple
 import jsonlines
 import os
-from collections import Counter, namedtuple
 
-import torch
-import torchvision.transforms as transforms
 from pytorch_transformers import *
 
 from .text_dataset import JsonlDataset
@@ -62,69 +61,103 @@ def get_vocab(bert_model: str) -> Vocab:
     return vocab
 
 
-def get_datasets(args):
+def get_datasets(
+    args: Namespace,
+) -> Tuple[JsonlDataset, JsonlDataset, JsonlDataset, JsonlDataset]:
+    """
+    Function that inits the 4 JsonlDataset Objects: one for the labeled training set,
+    one for the unlabeled training part, one for the dev set and one for the test set.
+
+    Args:
+        args (argparse.Namespace): Object with all the details needed to initialize the datasets.
+
+    Returns:
+        (Tuple[JsonlDataset, JsonlDataset, JsonlDataset, JsonlDataset]): The 4 JsonlDatasets.
+    """
+
+    # Load the tokenizer.
     tokenizer = BertTokenizer.from_pretrained(
         args.bert_model, do_lower_case=True
     ).tokenize
 
+    # Get the unique labels from the dataset & their frequencies.
     args.labels, args.label_freqs = get_labels_and_frequencies(
         os.path.join(args.data_path, "train", args.task)
     )
 
+    # Load the vocab for the tokenizer.
     vocab = get_vocab(args.bert_model)
     args.vocab = vocab
     args.vocab_sz = vocab.vocab_sz
     args.n_classes = len(args.labels)
-    print("args.labels:", args.labels)
-    print("args.label_freqs", args.label_freqs)
-    print("n_classes:", args.n_classes)
 
-    labeled_examples_per_class = (
-        args.labeled_examples_per_class
-    )  # if args.unbalanced else num_expand_x // args.n_classes
+    labeled_examples_per_class = args.labeled_examples_per_class
 
+    # Load the JsonlDataset for the labeled training dataset.
     labeled_set = JsonlDataset(
-        os.path.join(args.data_path, "train", args.task),
-        tokenizer,
-        vocab,
-        args,
+        data_path=os.path.join(args.data_path, "train", args.task),
+        tokenizer=tokenizer,
+        vocab=vocab,
+        n_classes=len(args.labels),
+        max_seq_len=args.max_seq_len,
         labeled_examples_per_class=labeled_examples_per_class,
-        text_aug0=args.text_soft_aug,
+        text_aug_soft=args.text_soft_aug,
     )
 
     args.train_data_len = len(labeled_set)
 
+    # Load the JsonlDataset for the unlabeled training dataset.
     unlabeled_set = JsonlDataset(
-        os.path.join(args.data_path, "unlabeled", args.unlabeled_dataset),
-        tokenizer,
-        vocab,
-        args,
-        text_aug0=args.text_soft_aug,
+        data_path=os.path.join(args.data_path, "unlabeled", args.unlabeled_dataset),
+        tokenizer=tokenizer,
+        vocab=vocab,
+        n_classes=len(args.labels),
+        max_seq_len=args.max_seq_len,
+        text_aug_soft=args.text_soft_aug,
         text_aug=args.text_hard_aug,
     )
 
+    # Load the JsonlDataset for the validation dataset.
     dev_set = JsonlDataset(
-        os.path.join(args.data_path, "dev", args.task),
-        tokenizer,
-        vocab,
-        args,
-        text_aug0="none",
+        data_path=os.path.join(args.data_path, "dev", args.task),
+        tokenizer=tokenizer,
+        vocab=vocab,
+        n_classes=len(args.labels),
+        max_seq_len=args.max_seq_len,
+        text_aug_soft="none",
     )
 
+    # Load the JsonlDataset for the testing dataset.
     test_set = JsonlDataset(
-        os.path.join(args.data_path, "test", args.task),
-        tokenizer,
-        vocab,
-        args,
-        text_aug0="none",
+        data_path=os.path.join(args.data_path, "test", args.task),
+        tokenizer=tokenizer,
+        vocab=vocab,
+        n_classes=len(args.labels),
+        max_seq_len=args.max_seq_len,
+        text_aug_soft="none",
     )
 
     return labeled_set, unlabeled_set, dev_set, test_set
 
 
-def get_data_loaders(args):
+def get_data_loaders(
+    args: Namespace,
+) -> Tuple[DataLoader, DataLoader, DataLoader, DataLoader]:
+    """
+    Build 4 Dataset Loaders used during the training process: one for the labeled training set,
+    one for the unlabeled training part, one for the dev set and one for the test set.
+
+    Args:
+        args (argparse.Namespace): Object with all the details needed to initialize the datasets.
+
+    Returns:
+        (Tuple[DataLoader, DataLoader, DataLoader, DataLoader]): The 4 DataLoader.
+    """
+
+    # Extract the 4 JsonlDatasets.
     labeled_set, unlabeled_set, dev_set, test_set = get_datasets(args)
 
+    # Build the DataLoader for the labeled training set.
     labeled_loader = DataLoader(
         labeled_set,
         sampler=RandomSampler(labeled_set),
@@ -133,6 +166,7 @@ def get_data_loaders(args):
         drop_last=True,
     )
 
+    # Build the DataLoader for the unlabeled training set.
     unlabeled_loader = DataLoader(
         unlabeled_set,
         sampler=RandomSampler(unlabeled_set),
@@ -141,6 +175,7 @@ def get_data_loaders(args):
         drop_last=True,
     )
 
+    # Build the DataLoader for the validation set.
     dev_loader = DataLoader(
         dev_set,
         sampler=SequentialSampler(dev_set),
@@ -148,6 +183,7 @@ def get_data_loaders(args):
         num_workers=args.num_workers,
     )
 
+    # Build the DataLoader for the testing set.
     test_loader = DataLoader(
         test_set,
         sampler=SequentialSampler(test_set),
@@ -156,33 +192,3 @@ def get_data_loaders(args):
     )
 
     return labeled_loader, unlabeled_loader, dev_loader, test_loader
-
-
-if __name__ == "__main__":
-    args = Object()
-
-    args.data_path = (
-        "C:\\Users\\andre\\Desktop\\Master - 2\\Research\\final_datasets\\fixtext\\"
-    )
-    args.task = "final_simplified_language_youtube_parsed_dataset.jsonl"
-    args.unlabeled_dataset = "unlabled_language_youtube_dataset.jsonl"
-    args.batch_size = 1
-    args.num_workers = 1
-    args.mu = 1
-    args.bert_model = "bert-base-uncased"
-    args.text_soft_aug = "eda_01"
-    args.text_hard_aug = "textRU"
-    args.max_seq_len = 60
-
-    labeled_loader, unlabeled_loader, dev_loader, test_loader = get_data_loaders(args)
-
-    train_loader = zip(labeled_loader, unlabeled_loader)
-
-    print("Loaded!")
-
-    for batch_idx, (data_x, data_u) in enumerate(train_loader):
-        print("Labeled: ", data_x)
-        print()
-        print("Unlabeled:", data_u)
-
-        break

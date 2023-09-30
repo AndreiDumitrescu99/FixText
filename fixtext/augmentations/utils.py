@@ -38,6 +38,7 @@ def get_only_chars(line: str) -> str:
     line = line.replace("\n", " ")
     line = line.lower()
 
+    # Filter characters.
     for char in line:
         if char in "0123456789qwertyuiopasdfghjklzxcvbnm ":
             clean_line += char

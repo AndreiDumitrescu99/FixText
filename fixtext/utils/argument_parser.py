@@ -20,6 +20,7 @@ def get_my_args(parser: ArgumentParser):
             "unlabled_language_twitter_dataset.jsonl",
             "unlabled_language_youtube_dataset.jsonl",
         ],
+        help="Possible jsonl files.",
     )
     parser.add_argument(
         "--task",
@@ -31,7 +32,7 @@ def get_my_args(parser: ArgumentParser):
             "final_simplified_language_kaggle_parsed_dataset.jsonl",
             "final_simplified_language_cyberbullying_tweets.jsonl",
         ],
-        help="Describes what dataset to use",
+        help="Describes what dataset to use.",
     )
     parser.add_argument(
         "--out",
@@ -40,25 +41,37 @@ def get_my_args(parser: ArgumentParser):
     )
 
     # Model Related Arguments.
-    parser.add_argument("--bert_model", type=str, default="bert-base-uncased")
-    parser.add_argument("--max_seq_len", type=int, default=64)
+    parser.add_argument(
+        "--bert_model",
+        type=str,
+        default="bert-base-uncased",
+        help="BERT Flavor to be used from HuggingFace.",
+    )
+    parser.add_argument(
+        "--max_seq_len",
+        type=int,
+        default=64,
+        help="Maximum sequence length in terms of tokens for the input text",
+    )
     parser.add_argument(
         "--text_soft_aug",
         type=str,
         default="eda_01",
         choices=["none", "eda", "eda_01", "eda_sr", "textDE"],
+        help="Soft augmentation.",
     )
     parser.add_argument(
         "--text_hard_aug",
         type=str,
         default="eda_02",
         choices=["none", "eda", "eda_01", "eda_02", "textRU"],
+        help="Strong augmentation.",
     )
     parser.add_argument(
         "--text_prob_aug",
         type=float,
         default=1.0,
-        help="probability of using augmented text.",
+        help="Probability of using augmented text.",
     )
 
     # Trainer Related Arguments.
@@ -91,18 +104,27 @@ def get_my_args(parser: ArgumentParser):
         "--learning-rate-main",
         default=1e-5,
         type=float,
-        help="Initial learning rate.",
+        help="Initial learning rate for the BERT Layer from ClassificationBert.",
     )
     parser.add_argument(
         "--lrlast",
         "--learning-rate-last",
         default=1e-3,
         type=float,
-        help="Initial learning rate.",
+        help="Initial learning rate for the Classifier Head from ClassificationBert.",
     )
-    parser.add_argument("--lr_factor", type=float, default=0.5)
-    parser.add_argument("--lr_patience", type=int, default=2)
-    parser.add_argument("--labeled_examples_per_class", type=int, default=0)
+    parser.add_argument(
+        "--lr_factor", type=float, default=0.5, help="Learning rate factor."
+    )
+    parser.add_argument(
+        "--lr_patience", type=int, default=2, help="Learning rate patience."
+    )
+    parser.add_argument(
+        "--labeled_examples_per_class",
+        type=int,
+        default=0,
+        help="How many labeled examples to use from each class. If 0 it uses all the samples.",
+    )
 
     # Loss Related Arguments.
     parser.add_argument(
