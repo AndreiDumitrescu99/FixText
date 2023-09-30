@@ -109,26 +109,6 @@ def main():
     logger.info(f"  Total train batch size = {args.batch_size}")
     logger.info(f"  Total optimization steps = {args.total_steps}")
 
-    # FIXME: REMOVE!
-    # if args.eval_only:
-    #     checkpoint = torch.load(
-    #         "C:\\Users\\andre\\Desktop\\Master - 2\\Research\\experiments_fixtext\\short_set\\twitter_classic\\model_best.pth.tar"
-    #     )
-    #     model.load_state_dict(checkpoint["state_dict"])
-    #     test_model = model
-
-    #     valid_loss, bin_valid = test(args, valid_loader, test_model, "Valid")
-    #     print("Valid metrics: ", valid_loss)
-    #     for k, v in bin_valid.items():
-    #         print("", k, v, sep="\t")
-    #     print()
-    #     test_loss, bin_test = test(args, test_loader, test_model, "Test")
-    #     print("Test metrics: ", test_loss)
-    #     for k, v in bin_test.items():
-    #         print("", k, v, sep="\t")
-
-    #     return
-
     # Iterate through the epochs.
     for epoch in range(start_epoch, args.epochs):
         model.zero_grad()
@@ -155,24 +135,23 @@ def main():
         test_model = model
 
         # Evaluate the model using: the training set, the validation set & the testing set.
-        etrain_loss, bin_etrain = test(
-            args, labeled_trainloader, test_model, "EvalTrain"
-        )
-        valid_loss, bin_valid = test(args, valid_loader, test_model, "Valid")
-        real_test_loss, real_bin_test = test(args, test_loader, test_model, "Test")
+        etrain_loss, bin_etrain = test(labeled_trainloader, test_model, args.device)
+        valid_loss, bin_valid = test(valid_loader, test_model, args.device)
+        real_test_loss, real_bin_test = test(test_loader, test_model, args.device)
 
-        print("Train metrics: ", etrain_loss)
+        # Log the results.
+        logger.info("Train metrics: ", etrain_loss)
         for k, v in bin_etrain.items():
-            print("", k, v, sep="\t")
-        print()
-        print("Valid metrics: ", valid_loss)
+            logger.info("", k, v, sep="\t")
+        logger.info()
+        logger.info("Valid metrics: ", valid_loss)
         for k, v in bin_valid.items():
-            print("", k, v, sep="\t")
-        print()
-        print("Test metrics: ", real_test_loss)
+            logger.info("", k, v, sep="\t")
+        logger.info()
+        logger.info("Test metrics: ", real_test_loss)
         for k, v in real_bin_test.items():
-            print("", k, v, sep="\t")
-        print()
+            logger.info("", k, v, sep="\t")
+        logger.info()
 
         # Run the scheduler.
         scheduler.step(etrain_loss)
@@ -221,7 +200,7 @@ def generic_train(
     optimizer: torch.optim.Optimizer,
     scheduler: torch.optim.lr_scheduler.ReduceLROnPlateau,
     epoch: int,
-):
+) -> Tuple[float, float, float, float]:
     """
     Generic train function.
 
@@ -254,7 +233,7 @@ def train(
     optimizer: torch.optim.Optimizer,
     scheduler: torch.optim.lr_scheduler.ReduceLROnPlateau,
     epoch: int,
-):
+) -> Tuple[float, float, float, float]:
     """
     Runs a training step equivalent to a training epoch.
 
@@ -291,9 +270,8 @@ def train(
     # Set the model in the training mode.
     model.train()
 
-    # In case we have a Linear Weighting scheduler for the unlabeled loss part, print it.
     if args.linear_lu:
-        print("Lu weight: ", (epoch / args.epochs) * args.lambda_u)
+        logger.info("Lu weight: ", (epoch / args.epochs) * args.lambda_u)
 
     # Iterate through the batches from the dataset.
     for batch_idx, (data_x, data_u) in enumerate(train_loader):
