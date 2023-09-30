@@ -104,6 +104,7 @@ class JsonlDataset(Dataset):
 
         Args:
             text (str): Text to be tokenized.
+
         Returns:
             (torch.LongTensor): Tensor with the token ids for the input text.
         """
@@ -136,6 +137,7 @@ class JsonlDataset(Dataset):
         Args:
             index (int): Index of the sample.
             aug (str): What augmentation to apply.
+
         Returns:
             (torch.LongTensor): Tensor with the token ids for the input text.
         """
@@ -160,6 +162,7 @@ class JsonlDataset(Dataset):
 
         Args:
             index (int): The sample we need to return.
+
         Returns:
             (Tuple[torch.LongTensor, int, torch.LongTensor | None]):
                 The softly augmented sample, the label, and optionally, the strongly augmented sample.
@@ -187,6 +190,7 @@ class JsonlDataset(Dataset):
 
         Args:
             index (int): The sample we need to return.
+
         Returns:
             (Tuple[torch.LongTensor, int, torch.LongTensor | None]):
                 The softly augmented sample, the label, and optionally, the strongly augmented sample.

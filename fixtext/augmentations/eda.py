@@ -5,57 +5,14 @@ import random
 from random import shuffle
 from typing import List
 
-import re
 import nltk
 from nltk.corpus import wordnet
 from .stop_words import stop_words
+from .utils import get_only_chars
 
 nltk.download("wordnet")
 nltk.download("omw-1.4")
 random.seed(1)
-
-
-def reduce_repeating(s: str) -> str:
-    repeat_pattern = re.compile(r"(.)\1\1+")
-    match_substitution = r"\1\1"
-    return repeat_pattern.sub(match_substitution, s)
-
-
-def get_only_chars(line: str) -> str:
-    """
-    Receives a string line and returns the cleaned version of it which contains only alphabet characters.
-
-    Args:
-        line (str): String line to be cleaned.
-
-    Returns:
-        (str): Cleaned line containing only lower cased alphabet characters.
-    """
-
-    clean_line = ""
-
-    line = line.replace("’", "")
-    line = line.replace("'", "")
-    line = line.replace("-", " ")  # Replace hyphens with spaces
-    line = line.replace("\t", " ")
-    line = line.replace("\n", " ")
-    line = line.lower()
-
-    for char in line:
-        if char in "0123456789qwertyuiopasdfghjklzxcvbnm ":
-            clean_line += char
-        else:
-            clean_line += " "
-
-    # Delete extra spaces.
-    clean_line = re.sub(" +", " ", clean_line)
-    if clean_line[0] == " ":
-        clean_line = clean_line[1:]
-
-    # Reduce repeaitng characters.
-    clean_line = reduce_repeating(clean_line)
-
-    return clean_line
 
 
 def get_synonyms(word: str) -> List[str]:
@@ -264,12 +221,29 @@ def eda(
     num_aug: int = 10,
     per_technique: bool = False,
 ) -> List[str]:
-    # Preproces the sentence.
+    """
+    Main function that applies the EDA augmentation.
+
+    Args:
+        sentence (str): Sentence on which we apply the EDA augmentation.
+        alpha_sr (float): Percentage of words to synonym replace from.
+        alpha_ri (float): Percentage of words to random insert in the sentence.
+        alpha_rs (float): Percentage of words to be randomly swapped.
+        p_rd (float): Probability to random delete 2 words.
+        num_aug (int): How many samples to generate using the 4 basic operations.
+        per_technique (bool): If True, we will produce 'num_aug' samples per operation, not overall.
+
+    Returns:
+        (List[str]): List of the resulting augmentated sentences.
+    """
+
+    # Preprocess the sentence to extract a list of words.
     sentence = get_only_chars(sentence)
     words = sentence.split(" ")
     words = [word for word in words if word != ""]
     num_words = len(words)
 
+    # Compute how many samples we need to produce.
     augmented_sentences = []
     if per_technique:
         num_new_per_technique = num_aug
@@ -277,7 +251,7 @@ def eda(
     else:
         num_new_per_technique = int(num_aug / 4) + 1
 
-    # Synonym replacement.
+    # Synonym Replacement.
     if alpha_sr > 0:
         n_sr = max(1, int(alpha_sr * num_words))
         for _ in range(num_new_per_technique):
@@ -304,6 +278,7 @@ def eda(
             a_words = random_deletion(words, p_rd)
             augmented_sentences.append(" ".join(a_words))
 
+    # Clean and shuffle the augmented sentences.
     augmented_sentences = [get_only_chars(sentence) for sentence in augmented_sentences]
     shuffle(augmented_sentences)
 

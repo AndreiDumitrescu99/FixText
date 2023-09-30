@@ -38,6 +38,7 @@ class Vocab(object):
                 w: i
                 for i, w in enumerate(["[PAD]", "[UNK]", "[CLS]", "[SEP]", "[MASK]"])
             }
+
             self.itos = [w for w in self.stoi]
             self.vocab_sz = len(self.itos)
 
@@ -51,6 +52,7 @@ class Vocab(object):
 
         # Extract the current id.
         cnt = len(self.itos)
+
         # For each word check if it is already in the mappings. If it isn't, add it.
         for w in words:
             if w in self.stoi:
@@ -58,5 +60,6 @@ class Vocab(object):
             self.stoi[w] = cnt
             self.itos.append(w)
             cnt += 1
+
         # Save the new vocabulary size.
         self.vocab_sz = len(self.itos)

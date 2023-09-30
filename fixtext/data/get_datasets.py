@@ -42,9 +42,19 @@ def get_labels_and_frequencies(path: str) -> Tuple[List[int], Counter]:
     return list(label_freqs.keys()), label_freqs
 
 
-def get_vocab(args):
+def get_vocab(bert_model: str) -> Vocab:
+    """
+    Function that inits a Vocab object with the tokens and ids from the BertTokenizer.
+
+    Args:
+        bert_model (str): The flavor of BERT for the BertTokenizer.
+
+    Returns:
+        (Vocab): Vocabulary object initialized with the tokens and ids from BertTokenzier.
+    """
+
     vocab = Vocab()
-    bert_tokenizer = BertTokenizer.from_pretrained(args.bert_model, do_lower_case=True)
+    bert_tokenizer = BertTokenizer.from_pretrained(bert_model, do_lower_case=True)
     vocab.stoi = bert_tokenizer.vocab
     vocab.itos = bert_tokenizer.ids_to_tokens
     vocab.vocab_sz = len(vocab.itos)
@@ -61,7 +71,7 @@ def get_datasets(args):
         os.path.join(args.data_path, "train", args.task)
     )
 
-    vocab = get_vocab(args)
+    vocab = get_vocab(args.bert_model)
     args.vocab = vocab
     args.vocab_sz = vocab.vocab_sz
     args.n_classes = len(args.labels)
