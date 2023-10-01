@@ -7,8 +7,8 @@ from typing import List
 
 import nltk
 from nltk.corpus import wordnet
-from .stop_words import stop_words
-from .utils import get_only_chars
+from stop_words import stop_words
+from fixtext.augmentations.utils import get_only_chars
 
 nltk.download("wordnet")
 nltk.download("omw-1.4")

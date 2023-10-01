@@ -1,4 +1,3 @@
-from argparse import Namespace
 from models.bert import ClassificationBert
 from sklearn.metrics import f1_score
 import time
@@ -6,8 +5,8 @@ from typing import Tuple, Dict
 import torch
 import torch.nn.functional as F
 from torch.utils.data import DataLoader
-from utils.metrics import binary_metrics
-from utils.average_meter import AverageMeter
+from fixtext.utils.metrics import binary_metrics
+from fixtext.utils.average_meter import AverageMeter
 
 
 def test(
@@ -55,7 +54,7 @@ def test(
 
     # Run through the dataset.
     with torch.no_grad():
-        for _, (inputs, targets) in enumerate(test_loader):
+        for _, (inputs, targets, _) in enumerate(test_loader):
             data_time.update(time.time() - end)
 
             # Set the model in evaluation mode.
@@ -100,8 +99,8 @@ def test(
     )
 
     # Store the values.
-    bin_metrics["macro/f1"].avg = macro_f1_score
-    bin_metrics["micro/f1"].avg = micro_f1_score
+    bin_metrics["macro/f1"].avg = macro_f1_score[0]
+    bin_metrics["micro/f1"].avg = micro_f1_score[0]
 
     # Save only the averages.
     for k in bin_metrics:

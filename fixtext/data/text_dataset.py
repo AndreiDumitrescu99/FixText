@@ -3,9 +3,8 @@ import random
 from collections import Counter
 import torch
 from torch.utils.data import Dataset
-from .vocab import Vocab
+from fixtext.data.vocab import Vocab
 from pytorch_transformers import BertTokenizer
-import argparse
 from typing import Tuple, Union, Optional
 
 
@@ -166,16 +165,17 @@ class JsonlDataset(Dataset):
 
     def get_item(
         self, index: int
-    ) -> Tuple[torch.LongTensor, int, Union[torch.LongTensor, None]]:
+    ) -> Tuple[torch.LongTensor, int, torch.LongTensor]:
         """
         Returns a softly augmented version of a sample, its label and optionally
-        a strongly augmented version of the respective sample.
+        a strongly augmented version of the respective sample. If we don't need to apply the
+        strong augmentation, we return the softly augmented version.
 
         Args:
             index (int): The sample we need to return.
 
         Returns:
-            (Tuple[torch.LongTensor, int, torch.LongTensor | None]):
+            (Tuple[torch.LongTensor, int, torch.LongTensor):
                 The softly augmented sample, the label, and optionally, the strongly augmented sample.
         """
 
@@ -187,7 +187,7 @@ class JsonlDataset(Dataset):
 
         # Check if we need to strongly augment the sample.
         if self.text_aug is None:
-            return sentence, label, None
+            return sentence, label, sentence
         else:
             # Strongly augment the sample & extract the ids.
             sentence_aug = self._get_text(index, self.text_aug)

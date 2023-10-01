@@ -16,6 +16,7 @@ The data used in this project includes instances of sexism and hate speech. Ther
 .
 │   .gitignore
 │   README.md
+|   setup.py
 │
 ├───.vscode
 │       settings.json
@@ -26,6 +27,7 @@ The data used in this project includes instances of sexism and hate speech. Ther
     │   __init__.py
     │
     ├───augmentations                <- Augmentations. 
+    │       backtranslate.py             <- Computes backtranslation.
     │       eda.py                       <- Defines operations for EDA Augmentation.
     │       precompute_eda.py            <- Precomputes EDA Augmentation for a given dataset.    
     │       stop_words.py                <- Contains a list of stop words.
@@ -50,3 +52,83 @@ The data used in this project includes instances of sexism and hate speech. Ther
             utils.py                     <- Other utils functions.
             __init__.py
 ```
+
+## Getting Started
+### Setup
+In order to setup the working space:
+- git clone this repository:
+```bash
+git clone https://github.com/AndreiDumitrescu99/FixText.git
+```
+- make a virtual env where you will install all the needed packages, for example:
+```bash
+python3 -m venv dev_venv
+source dev_venv/bin/activate
+```
+- intall the FixText package:
+```bash
+pip install -e .
+```
+
+### Dataset Preparation
+You will need 4 different jsonl files: one for the labeled training set, one for the unlabeled training, one for the validation set and one for the testing set.
+A sample from these files should have the following JSON format:
+```json
+{
+    "text": "Some text",
+    "textDE": "Backtranslated text with german.",
+    "textRU": "Backtranslated text with russian.",
+    "label": "Label of the sample.",
+    "dataset": "From which dataset it belongs.",
+    "split": "either: training, testing or validation",
+    "eda_01": ["...", "...", ...],
+    "eda_02": ["...", "...", ...],
+    "eda_sr": ["...", "...", ...],
+}
+```
+To obtain this format, you should start with a JSONL file where the samples have the following format:
+```json
+{
+    "text": "Some text",
+    "label": "Label of the sample.",
+    "dataset": "From which dataset it belongs.",
+    "split": "either: training, testing or validation",
+}
+```
+Using the `backtranslate.py` script, you can generate the `textDE` and `textRU` properties.
+Using the `precompute_eda.py` script, you can generate the `eda_01`, `eda_02` and `eda_sr` properties. <br>
+
+### Training
+Supposse you have 2 datasets: X, Y on which you want to run FixText, and you've run the steps presented above for dataset preparation.
+The final folder structure where the datasets are stored should look like this:
+```
+.
+│
+├───dev
+│       dataset_X.jsonl
+|       dataset_Y.jsonl
+│
+├───test
+│       dataset_X.jsonl
+|       dataset_Y.jsonl
+│
+├───train
+│       dataset_X.jsonl
+|       dataset_Y.jsonl
+│
+└───unlabeled
+        unlabled_dataset_X.jsonl
+        unlabled_dataset_Y.jsonl
+```
+Take a closer look at the arguments from the `argument_parser.py` and decide with what hyperparameters you want to run. <br>
+Initially, if you want to run the FixText algorithm on the dataset X, simply run the `train.py` file with the desired arguments, or you can simply run with the default parameters by doing this:
+```bash
+python train.py --data_path path_to_datasets_folders --unlabeled_dataset unlabled_dataset_X.jsonl --task dataset_X.jsonl --out path_to_output_folder
+```
+
+## Further Work
+As further work, I would like:
+- to add support for [Hydra](https://hydra.cc/docs/intro/)
+- to better generalize the use case of Fix Text
+- add unit tests for some functions
+- add more augmentations

@@ -6,7 +6,7 @@ from argparse import ArgumentParser, Namespace
 import os
 import jsonlines
 from tqdm import tqdm
-from utils.utils import set_seed
+from fixtext.utils.utils import set_seed
 from typing import List
 
 
@@ -43,17 +43,17 @@ def get_args_for_eda() -> Namespace:
 
     parser.add_argument(
         "--input_files",
-        type=List[str],
+        type=str,
+        nargs="+",
         required=True,
-        action="append",
         help="List of input files with the samples that need to be augmented. The files should be jsonl files.",
     )
 
     parser.add_argument(
         "--output_files",
-        type=List[str],
+        type=str,
+        nargs="+",
         required=True,
-        action="append",
         help="List of output files where we save the augmentated samples.",
     )
 
@@ -113,6 +113,9 @@ def main(
             # Take each (JSON) sample from the input file and compute the augmentations.
             for _, obj in tqdm(enumerate(reader)):
                 try:
+                    # Clean the Text.
+                    obj["text"] = get_only_chars(obj["text"])
+
                     # Apply EDA-01 (alpha_sr = alpha_ri = alpha_rs = p_rd = 0.1)
                     obj["eda_01"] = eda(
                         obj["text"], 0.1, 0.1, 0.1, 0.1, num_augmentations
@@ -127,11 +130,6 @@ def main(
                     obj["eda_02"] = eda(
                         obj["text"], 0.2, 0.2, 0.2, 0.2, num_augmentations
                     )
-
-                    # Clean the Text and the Backtranslations.
-                    obj["text"] = get_only_chars(obj["text"])
-                    obj["textDE"] = get_only_chars(obj["textDE"])
-                    obj["textRU"] = get_only_chars(obj["textRU"])
 
                 except Exception as excpt:
                     print(excpt)

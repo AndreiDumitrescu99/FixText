@@ -1,12 +1,12 @@
 from argparse import Namespace
-from collections import Counter, namedtuple
+from collections import Counter
 import jsonlines
 import os
 
 from pytorch_transformers import *
 
-from .text_dataset import JsonlDataset
-from data.vocab import Vocab
+from fixtext.data.text_dataset import JsonlDataset
+from fixtext.data.vocab import Vocab
 
 from torch.utils.data import DataLoader, RandomSampler, SequentialSampler
 from typing import Tuple, List

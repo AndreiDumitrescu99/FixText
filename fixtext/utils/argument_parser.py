@@ -6,37 +6,25 @@ def get_my_args(parser: ArgumentParser):
     parser.add_argument(
         "--data_path",
         type=str,
-        default="C:\\Users\\andre\\Desktop\\Master - 2\\Research\\final_datasets\\fixtext\\",
+        required=True,
         help="Absolute path to the datasets.",
     )
 
     parser.add_argument(
         "--unlabeled_dataset",
-        default="unlabled_language_cyberbullying_tweets.jsonl",
+        required=True,
         type=str,
-        choices=[
-            "unlabled_language_cyberbullying_tweets.jsonl",
-            "unlabled_language_kaggle_dataset.jsonl",
-            "unlabled_language_twitter_dataset.jsonl",
-            "unlabled_language_youtube_dataset.jsonl",
-        ],
         help="Possible jsonl files.",
     )
     parser.add_argument(
         "--task",
-        default="final_simplified_language_cyberbullying_tweets.jsonl",
         type=str,
-        choices=[
-            "final_simplified_language_youtube_parsed_dataset.jsonl",
-            "final_simplified_language_twitter_parsed_dataset.jsonl",
-            "final_simplified_language_kaggle_parsed_dataset.jsonl",
-            "final_simplified_language_cyberbullying_tweets.jsonl",
-        ],
+        required=True,
         help="Describes what dataset to use.",
     )
     parser.add_argument(
         "--out",
-        default="C:\\Users\\andre\\Desktop\\Master - 2\\Research\\experiments_fixtext\\short_set\\TESTACHE",
+        required=True,
         help="Directory to output the result.",
     )
 

@@ -12,11 +12,11 @@ from typing import Tuple
 
 from models.bert import ClassificationBert
 from models.trainer_helpers import get_optimizer, save_checkpoint, get_scheduler
-from utils.utils import set_seed
-from utils.argument_parser import get_my_args
-from utils.average_meter import AverageMeter
-from data.get_datasets import get_data_loaders
-from .test import test
+from fixtext.utils.utils import set_seed
+from fixtext.utils.argument_parser import get_my_args
+from fixtext.utils.average_meter import AverageMeter
+from fixtext.data.get_datasets import get_data_loaders
+from fixtext.test import test
 
 import logging
 
@@ -140,18 +140,15 @@ def main():
         real_test_loss, real_bin_test = test(test_loader, test_model, args.device)
 
         # Log the results.
-        logger.info("Train metrics: ", etrain_loss)
+        logger.info(f"Train metrics: {etrain_loss}")
         for k, v in bin_etrain.items():
-            logger.info("", k, v, sep="\t")
-        logger.info()
-        logger.info("Valid metrics: ", valid_loss)
+            logger.info(f"{k}: {v}")
+        logger.info(f"Valid metrics: {valid_loss}")
         for k, v in bin_valid.items():
-            logger.info("", k, v, sep="\t")
-        logger.info()
-        logger.info("Test metrics: ", real_test_loss)
+            logger.info(f"{k}: {v}")
+        logger.info(f"Test metrics: {real_test_loss}")
         for k, v in real_bin_test.items():
-            logger.info("", k, v, sep="\t")
-        logger.info()
+            logger.info(f"{k}: {v}")
 
         # Run the scheduler.
         scheduler.step(etrain_loss)
@@ -276,7 +273,7 @@ def train(
     # Iterate through the batches from the dataset.
     for batch_idx, (data_x, data_u) in enumerate(train_loader):
         # Extract the labeled input text and its corresponding target.
-        text_x, tgt_x = data_x
+        text_x, tgt_x, _ = data_x
         # Extract the unlabeled input text and its correponding augmented version.
         text_u, _, text_aug_data_u = data_u
 
